@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorVault - Premium Content</title>
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Fonts (Playfair Display + Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* =========================================
+           THEME & VARIABLES
+           ========================================= */
+        :root {
+            --primary: #EC4899; /* Pink-500 */
+            --primary-dark: #BE185D; /* Rose-700 */
+            --primary-light: #FBCFE8; /* Pink-200 */
+            --bg: #FFF8FC;
+            --white: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --glass: rgba(255, 255, 255, 0.85);
+            --shadow: 0 10px 30px rgba(236, 72, 153, 0.15);
+            --radius: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, .font-display { font-family: 'Playfair Display', serif; }
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+        img { max-width: 100%; display: block; object-fit: cover; }
+
+        /* =========================================
+           ANIMATED BACKGROUND
+           ========================================= */
+        .bg-animator {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; overflow: hidden; pointer-events: none;
+        }
+        .blob {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px); opacity: 0.6;
+            animation: float 20s ease-in-out infinite;
+        }
+        .blob-1 { width: 500px; height: 500px; background: #F9A8D4; top: -100px; right: -100px; animation-delay: 0s; }
+        .blob-2 { width: 400px; height: 400px; background: #EC4899; bottom: -50px; left: -50px; animation-delay: -5s; }
+        .blob-3 { width: 300px; height: 300px; background: #FDF2F8; top: 40%; left: 40%; animation-delay: -10s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, -20px); }
+        }
+
+        /* =========================================
+           GLASS & UTILITIES
+           ========================================= */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: var(--shadow);
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .flex { display: flex; align-items: center; }
+        .flex-col { display: flex; flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-10 { gap: 10px; } .gap-20 { gap: 20px; } .gap-30 { gap: 30px; }
+        .text-center { text-align: center; }
+        .hidden { display: none !important; }
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* =========================================
+           BUTTONS & INPUTS
+           ========================================= */
+        .btn {
+            padding: 12px 32px; border-radius: 50px; font-weight: 600; cursor: pointer;
+            border: none; transition: all 0.3s ease; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(236, 72, 153, 0.5); }
+        
+        .btn-secondary {
+            background: white; color: var(--primary-dark);
+            border: 2px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .btn-secondary:hover { background: #FDF2F8; transform: translateY(-2px); }
+
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 0.9rem; margin-bottom: 8px; font-weight: 500; color: var(--text-muted); }
+        .input-field {
+            width: 100%; padding: 14px 20px; border-radius: 12px; border: 2px solid #F9A8D4;
+            background: white; transition: 0.3s; font-size: 1rem; outline: none;
+        }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1); }
+
+        /* =========================================
+           NAVIGATION
+           ========================================= */
+        header {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            padding: 15px 0; transition: 0.3s;
+        }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); }
+        
+        .nav-links a { font-weight: 500; color: var(--text-main); margin-left: 25px; }
+        .nav-links a:hover { color: var(--primary); }
+
+        .hamburger { display: none; cursor: pointer; width: 30px; height: 25px; position: relative; }
+        .hamburger span {
+            position: absolute; width: 100%; height: 3px; background: var(--primary-dark);
+            border-radius: 2px; transition: 0.3s;
+        }
+        .hamburger span:nth-child(1) { top: 0; }
+        .hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+        .hamburger span:nth-child(3) { bottom: 0; }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            position: fixed; top: 0; right: -100%; width: 300px; height: 100%;
+            background: white; z-index: 200; box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+            transition: 0.4s ease; padding: 40px; display: flex; flex-direction: column;
+        }
+        .mobile-menu.open { right: 0; }
+        .mobile-menu-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 190;
+            opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .mobile-menu-overlay.active { opacity: 1; pointer-events: all; }
+        .mobile-links a { font-size: 1.2rem; font-weight: 500; display: block; padding: 15px 0; border-bottom: 1px solid #f3f4f6; }
+
+        /* =========================================
+           PAGES & CARDS
+           ========================================= */
+        main { padding-top: 100px; padding-bottom: 60px; }
+        .page { display: none; animation: fadeIn 0.6s ease-out; }
+        .page.active { display: block; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Hero */
+        .hero { min-height: 80vh; display: flex; align-items: center; }
+        .hero-content h1 { font-size: 3.5rem; line-height: 1.2; margin-bottom: 20px; }
+        .hero-img-wrapper { position: relative; }
+        .hero-img { width: 300px; height: 300px; border-radius: 50%; object-fit: cover; border: 5px solid white; box-shadow: var(--shadow); }
+
+        /* Content Grid */
+        .grid { display: grid; gap: 30px; }
+        .grid-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        .card {
+            background: white; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05); transition: 0.3s; position: relative;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(236, 72, 153, 0.15); }
+        .card-img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+        .card-info { padding: 20px; }
+        .badge {
+            position: absolute; top: 15px; right: 15px; padding: 6px 14px;
+            border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: white;
+        }
+        .badge-premium { background: var(--primary); }
+        .badge-free { background: #10B981; }
+
+        /* Lock Overlay */
+        .blur-lock {
+            position: absolute; inset: 0; backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.6); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 10;
+        }
+
+        /* Pricing */
+        .price-card {
+            background: white; padding: 40px; border-radius: 24px; text-align: center;
+            border: 2px solid transparent; transition: 0.3s;
+        }
+        .price-card:hover { border-color: var(--primary); }
+        .price-card.featured { border-color: var(--primary); position: relative; background: #FDF2F8; }
+        .price { font-size: 3rem; font-weight: 700; color: var(--primary); margin: 20px 0; }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 15px 25px; border-radius: 12px; color: white; font-weight: 600; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
+        .toast.success { background: #10B981; } .toast.error { background: #EF4444; }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links, .desktop-auth { display: none; }
+            .hamburger { display: block; }
+            .hero { flex-direction: column-reverse; text-align: center; padding-top: 40px; }
+            .hero-content h1 { font-size: 2.5rem; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Animation -->
+    <div class="bg-animator">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="glass-panel">
+        <div class="container nav-inner">
+            <a href="#" class="logo" onclick="app.nav('home')">CreatorVault</a>
+            
+            <nav class="nav-links">
+                <a href="#" onclick="app.nav('home')">Home</a>
+                <a href="#" onclick="app.nav('gallery')">Gallery</a>
+                <a href="#" onclick="app.nav('videos')">Videos</a>
+                <a href="#" onclick="app.nav('explore')">Explore</a>
+            </nav>
+
+            <div class="desktop-auth">
+                <a href="#" onclick="app.nav('login')" style="margin-right: 10px; font-weight: 600;">Login</a>
+                <button class="btn btn-primary" onclick="app.nav('register')" style="padding: 8px 20px; font-size: 0.9rem;">Join Now</button>
+            </div>
+
+            <div class="hamburger" onclick="app.toggleMenu()">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-overlay" id="menuOverlay" onclick="app.toggleMenu()"></div>
+    <div class="mobile-menu" id="mobileMenu">
+        <h2 style="font-size: 2rem; color: var(--primary); margin-bottom: 20px;">Menu</h2>
+        <div class="mobile-links">
+            <a href="#" onclick="app.nav('home'); app.toggleMenu();">Home</a>
+            <a href="#" onclick="app.nav('gallery'); app.toggleMenu();">Gallery</a>
+            <a href="#" onclick="app.nav('videos'); app.toggleMenu();">Videos</a>
+            <a href="#" onclick="app.nav('explore'); app.toggleMenu();">Explore</a>
+            <hr style="margin: 20px 0; border-color: #f3f4f6;">
+            <a href="#" onclick="app.nav('login'); app.toggleMenu();">Login</a>
+            <a href="#" onclick="app.nav('register'); app.toggleMenu();">Join Now</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        
+        <!-- HOME -->
+        <div id="home" class="page active">
+            <section class="hero">
+                <div class="hero-content" style="flex: 1;">
+                    <span style="color: var(--primary); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem;">Premium Experience</span>
+                    <h1>Welcome to <br><span class="text-gradient">CreatorVault</span></h1>
+                    <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
+                        Exclusive photos, videos, and behind-the-scenes content. Join the inner circle today.
+                    </p>
+                    <div class="flex gap-20">
+                        <button class="btn btn-primary" onclick="app.nav('gallery')">Explore Gallery</button>
+                        <button class="btn btn-secondary" onclick="app.nav('membership')">Get Premium</button>
+                    </div>
+                </div>
+                <div class="hero-img-wrapper flex justify-center" style="flex: 1;">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600" alt="Creator" class="hero-img">
+                </div>
+            </section>
+
+            <!-- Stats -->
+            <div class="glass-panel" style="padding: 30px; border-radius: 20px; margin-top: 40px; margin-bottom: 60px;">
+                <div class="flex justify-between" style="flex-wrap: wrap; gap: 20px; text-align: center;">
+                    <div><h3 class="text-gradient" style="font-size: 2rem;" id="stat-photos">0</h3><p style="color: var(--text-muted);">Photos</p></div>
+                    <div><h3 class="text-gradient" style="font-size: 2rem;" id="stat-videos">0</h3><p style="color: var(--text-muted);">Videos</p></div>
+                    <div><h3 class="text-gradient" style="font-size: 2rem;" id="stat-subs">0</h3><p style="color: var(--text-muted);">Subscribers</p></div>
+                </div>
+            </div>
+
+            <!-- Featured -->
+            <h2 class="text-center" style="margin-bottom: 30px; font-size: 2rem;">Featured Content</h2>
+            <div class="grid grid-3" id="featured-grid">
+                <p class="text-center" style="grid-column: 1/-1; color: #999;">Loading content...</p>
+            </div>
+        </div>
+
+        <!-- GALLERY -->
+        <div id="gallery" class="page">
+            <h2 class="text-center" style="margin-bottom: 30px;">Photo Gallery</h2>
+            <div class="flex justify-center gap-10" style="margin-bottom: 30px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="app.filterGallery('all')" style="border-radius: 30px;">All</button>
+                <button class="btn btn-secondary" onclick="app.filterGallery('Portrait')" style="border-radius: 30px;">Portrait</button>
+                <button class="btn btn-secondary" onclick="app.filterGallery('Lifestyle')" style="border-radius: 30px;">Lifestyle</button>
+            </div>
+            <div class="grid grid-3" id="gallery-grid">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- VIDEOS -->
+        <div id="videos" class="page">
+            <h2 class="text-center" style="margin-bottom: 30px;">Videos</h2>
+            <div class="grid grid-3" id="video-grid">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- EXPLORE -->
+        <div id="explore" class="page">
+            <h2 class="text-center" style="margin-bottom: 30px;">Explore All</h2>
+            <div class="grid grid-3" id="explore-grid"></div>
+        </div>
+
+        <!-- MEMBERSHIP -->
+        <div id="membership" class="page">
+            <h2 class="text-center" style="margin-bottom: 10px;">Membership Plans</h2>
+            <p class="text-center text-muted" style="margin-bottom: 50px;">Choose the best plan for you</p>
+            <div class="grid grid-3" style="max-width: 1000px; margin: 0 auto;">
+                <div class="price-card">
+                    <h3>Basic</h3>
+                    <div class="price">$9</div>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Basic Access</p>
+                    <button class="btn btn-secondary" onclick="app.selectPlan('Basic', 9)">Choose</button>
+                </div>
+                <div class="price-card featured">
+                    <span style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">POPULAR</span>
+                    <h3>Premium</h3>
+                    <div class="price">$19</div>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Full Access</p>
+                    <button class="btn btn-primary" onclick="app.selectPlan('Premium', 19)">Choose</button>
+                </div>
+                <div class="price-card">
+                    <h3>VIP</h3>
+                    <div class="price">$49</div>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Exclusive</p>
+                    <button class="btn btn-secondary" onclick="app.selectPlan('VIP', 49)">Choose</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="login" class="page">
+            <div class="glass-panel" style="max-width: 400px; margin: 50px auto; padding: 40px; border-radius: 30px;">
+                <h2 class="text-center" style="margin-bottom: 30px;">Welcome Back</h2>
+                <form onsubmit="app.handleLogin(event)">
+                    <div class="input-group"><label>Email</label><input type="email" id="login-email" class="input-field" required></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="login-pass" class="input-field" required></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                </form>
+                <p class="text-center" style="margin-top: 20px; font-size: 0.9rem;">
+                    New here? <a href="#" style="color: var(--primary);" onclick="app.nav('register')">Create Account</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="register" class="page">
+            <div class="glass-panel" style="max-width: 400px; margin: 50px auto; padding: 40px; border-radius: 30px;">
+                <h2 class="text-center" style="margin-bottom: 30px;">Join Now</h2>
+                <form onsubmit="app.handleRegister(event)">
+                    <div class="input-group"><label>Name</label><input type="text" id="reg-name" class="input-field" required></div>
+                    <div class="input-group"><label>Email</label><input type="email" id="reg-email" class="input-field" required></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="reg-pass" class="input-field" required></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+                </form>
+                <p class="text-center" style="margin-top: 20px; font-size: 0.9rem;">
+                    Already have an account? <a href="#" style="color: var(--primary);" onclick="app.nav('login')">Login</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- PAYMENT -->
+        <div id="payment" class="page">
+            <div class="glass-panel" style="max-width: 500px; margin: 50px auto; padding: 40px; border-radius: 30px; text-align: center;">
+                <h2>Payment</h2>
+                <p style="color: var(--text-muted); margin: 10px 0 30px;">Selected: <strong id="pay-plan-name">Premium</strong> - $<span id="pay-amount">19</span></p>
+                
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=sophia@okhdfcbank&pn=Sophia%20Bennett" style="width: 200px; margin: 0 auto 20px; border: 1px solid #eee; padding: 10px; border-radius: 10px;">
+                <p style="font-weight: 700; margin-bottom: 30px;">UPI: sophia@okhdfcbank</p>
+                
+                <form onsubmit="app.submitPayment(event)">
+                    <div class="input-group"><input type="text" id="pay-txn" class="input-field" placeholder="Transaction ID" required></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Payment</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="page">
+            <div class="glass-panel" style="padding: 40px; border-radius: 30px; margin-bottom: 30px;">
+                <h2>Dashboard</h2>
+                <div class="flex gap-30" style="margin-top: 20px;">
+                    <img src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff" style="width: 80px; height: 80px; border-radius: 50%;">
+                    <div>
+                        <h3 id="dash-name">User Name</h3>
+                        <p id="dash-email" style="color: var(--text-muted);">email@example.com</p>
+                        <span id="dash-badge" class="badge badge-free" style="position: relative; top: 0; left: 0;">Free Member</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-3">
+                <button class="card" style="padding: 30px; text-align: center;" onclick="app.nav('gallery')">
+                    <i class="fas fa-images" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
+                    <h3>Gallery</h3>
+                </button>
+                <button class="card" style="padding: 30px; text-align: center;" onclick="app.nav('videos')">
+                    <i class="fas fa-video" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
+                    <h3>Videos</h3>
+                </button>
+                <button class="card" style="padding: 30px; text-align: center;" onclick="app.nav('membership')">
+                    <i class="fas fa-crown" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
+                    <h3>Upgrade</h3>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
+        let supabase;
+        let isConfigured = false;
+
+        try {
+            if (!SUPABASE_URL.includes('your-project')) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                isConfigured = true;
+            } else {
+                setTimeout(() => alert("Please update Supabase Keys in code!"), 1000);
+            }
+        } catch (e) { console.error(e); }
+
+        const app = {
+            currentUser: null,
+            data: { photos: [], videos: [] },
+
+            init: async () => {
+                // Auth Check
+                const stored = localStorage.getItem('creator_vault_user');
+                if (stored) {
+                    try {
+                        app.currentUser = JSON.parse(stored);
+                        app.updateAuthUI();
+                    } catch (e) { localStorage.removeItem('creator_vault_user'); }
+                }
+                
+                // Load Data
+                if(isConfigured) {
+                    await app.loadContent();
+                    app.loadStats();
+                } else {
+                    document.getElementById('featured-grid').innerHTML = '<p class="text-center">Connect Database</p>';
+                }
+            },
+
+            loadContent: async () => {
+                const [p, v] = await Promise.all([
+                    supabase.from('photos').select('*'),
+                    supabase.from('videos').select('*')
+                ]);
+                app.data.photos = p.data || [];
+                app.data.videos = v.data || [];
+                app.renderFeatured();
+            },
+
+            renderFeatured: () => {
+                const html = app.data.photos.slice(0, 3).map(item => app.renderCard(item, 'photo')).join('');
+                document.getElementById('featured-grid').innerHTML = html || '<p class="text-center">No content</p>';
+            },
+
+            loadStats: async () => {
+                const { count: p } = await supabase.from('photos').select('*', { count: 'exact', head: true });
+                const { count: v } = await supabase.from('videos').select('*', { count: 'exact', head: true });
+                document.getElementById('stat-photos').innerText = p || 0;
+                document.getElementById('stat-videos').innerText = v || 0;
+            },
+
+            // --- Navigation ---
+            nav: (id) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+                app.toggleMenu(true); // Close menu
+                window.scrollTo(0, 0);
+
+                if(id === 'gallery') app.renderGallery();
+                if(id === 'videos') app.renderVideos();
+                if(id === 'explore') app.renderExplore();
+            },
+
+            toggleMenu: (forceClose = false) => {
+                const menu = document.getElementById('mobileMenu');
+                const overlay = document.getElementById('menuOverlay');
+                if (forceClose) {
+                    menu.classList.remove('open'); overlay.classList.remove('active');
+                } else {
+                    menu.classList.toggle('open'); overlay.classList.toggle('active');
+                }
+            },
+
+            // --- Rendering ---
+            renderCard: (item, type) => {
+                const isPremium = item.premium;
+                const hasAccess = app.currentUser && app.currentUser.membership === 'premium';
+                const locked = isPremium && !hasAccess;
+
+                return `
+                    <div class="card">
+                        <div style="position: relative;">
+                            <img src="${item.url || item.thumbnail_url}" class="card-img" loading="lazy">
+                            <span class="badge ${isPremium ? 'badge-premium' : 'badge-free'}">${isPremium ? 'PREMIUM' : 'FREE'}</span>
+                            ${locked ? `
+                                <div class="blur-lock">
+                                    <i class="fas fa-lock" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
+                                    <button class="btn btn-primary" onclick="app.nav('membership')">Unlock</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="card-info">
+                            <h4>${item.title}</h4>
+                            <p style="color: var(--text-muted); font-size: 0.9rem;">${item.category || type}</p>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderGallery: () => {
+                document.getElementById('gallery-grid').innerHTML = app.data.photos.map(p => app.renderCard(p, 'photo')).join('');
+            },
+            
+            renderVideos: () => {
+                document.getElementById('video-grid').innerHTML = app.data.videos.map(v => app.renderCard(v, 'video')).join('');
+            },
+
+            renderExplore: () => {
+                const all = [...app.data.photos.map(i=>({...i,type:'photo'})), ...app.data.videos.map(i=>({...i,type:'video'}))];
+                document.getElementById('explore-grid').innerHTML = all.map(i => app.renderCard(i, i.type)).join('');
+            },
+
+            filterGallery: (cat) => {
+                let filtered = app.data.photos;
+                if(cat !== 'all') filtered = filtered.filter(p => p.category === cat);
+                document.getElementById('gallery-grid').innerHTML = filtered.map(p => app.renderCard(p, 'photo')).join('');
+            },
+
+            // --- Auth & Pay ---
+            updateAuthUI: () => {
+                if(app.currentUser) {
+                    document.querySelector('.desktop-auth').innerHTML = `
+                        <a href="#" onclick="app.nav('dashboard')" style="margin-right:10px;">Dashboard</a>
+                        <button class="btn btn-secondary" onclick="app.logout()" style="padding: 8px 20px;">Logout</button>
+                    `;
+                    document.getElementById('dash-name').innerText = app.currentUser.full_name;
+                    document.getElementById('dash-email').innerText = app.currentUser.email;
+                }
+            },
+
+            handleLogin: async (e) => {
+                e.preventDefault();
+                if(!isConfigured) return app.toast('DB Error', 'error');
+                
+                const email = document.getElementById('login-email').value;
+                const pass = document.getElementById('login-pass').value;
+                const hashed = await app.hashPass(pass);
+
+                const { data } = await supabase.from('users').select('*').eq('email', email).eq('password', hashed).single();
+                if(data) {
+                    app.currentUser = data;
+                    localStorage.setItem('creator_vault_user', JSON.stringify(data));
+                    app.updateAuthUI();
+                    app.nav('dashboard');
+                    app.toast('Welcome!', 'success');
+                } else {
+                    app.toast('Invalid credentials', 'error');
+                }
+            },
+
+            handleRegister: async (e) => {
+                e.preventDefault();
+                if(!isConfigured) return app.toast('DB Error', 'error');
+
+                const name = document.getElementById('reg-name').value;
+                const email = document.getElementById('reg-email').value;
+                const pass = document.getElementById('reg-pass').value;
+                const hashed = await app.hashPass(pass);
+
+                const { error } = await supabase.from('users').insert([{ full_name: name, email, password: hashed }]);
+                if(error) app.toast(error.message, 'error');
+                else { app.toast('Registered!', 'success'); app.nav('login'); }
+            },
+
+            logout: () => {
+                app.currentUser = null;
+                localStorage.removeItem('creator_vault_user');
+                location.reload();
+            },
+
+            selectPlan: (plan, amount) => {
+                if(!app.currentUser) return app.toast('Please login first', 'error');
+                document.getElementById('pay-plan-name').innerText = plan;
+                document.getElementById('pay-amount').innerText = amount;
+                app.nav('payment');
+            },
+
+            submitPayment: async (e) => {
+                e.preventDefault();
+                const txn = document.getElementById('pay-txn').value;
+                await supabase.from('payments').insert([{
+                    user_id: app.currentUser.id,
+                    user_name: app.currentUser.full_name,
+                    plan: document.getElementById('pay-plan-name').innerText,
+                    transaction_id: txn,
+                    status: 'pending'
+                }]);
+                app.toast('Payment Submitted!', 'success');
+                app.nav('dashboard');
+            },
+
+            hashPass: async (p) => {
+                const buf = new TextEncoder().encode(p);
+                const hash = await crypto.subtle.digest('SHA-256', buf);
+                return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+            },
+
+            toast: (msg, type) => {
+                const div = document.createElement('div');
+                div.className = `toast ${type}`;
+                div.innerText = msg;
+                document.getElementById('toast-container').appendChild(div);
+                setTimeout(() => div.remove(), 3000);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - CreatorVault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #EC4899;
+      --secondary: #F9A8D4;
+      --accent: #BE185D;
+      --bg: #FFF8FC;
+      --card: #FFFFFF;
+      --text: #111827;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(236, 72, 153, 0.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #EC4899, #BE185D);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-primary:hover { transform: translateY(-2px); }
+    
+    .btn-secondary {
+      background: white;
+      color: #BE185D;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      border: 2px solid #EC4899;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .btn-secondary:hover { background: #FDF2F8; }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-danger:hover { transform: translateY(-1px); }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover { transform: translateY(-1px); }
+    
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #F9A8D4;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #EC4899;
+    }
+    
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 260px;
+      background: white;
+      border-right: 1px solid #FCE7F3;
+      padding: 24px 16px;
+      z-index: 40;
+      transition: transform 0.3s ease;
+    }
+    
+    .main-content {
+      margin-left: 260px;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: #6B7280;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover, .nav-item.active {
+      background: #FDF2F8;
+      color: #BE185D;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #FCE7F3;
+    }
+    
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      color: #6B7280;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .tab-btn.active {
+      background: linear-gradient(135deg, #EC4899, #BE185D);
+      color: white;
+    }
+    
+    .content-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .content-table th, .content-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #FCE7F3;
+    }
+    
+    .content-table th {
+      background: #FDF2F8;
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #F9A8D4;
+      border-top-color: #EC4899;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 14px 24px;
+      border-radius: 10px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+    }
+    
+    .toast.success { background: linear-gradient(135deg, #10B981, #059669); }
+    .toast.error { background: linear-gradient(135deg, #EF4444, #DC2626); }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Supabase Configuration -->
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass rounded-3xl p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Admin Login</h1>
+        <p class="text-gray-600 mt-2">Access the admin panel</p>
+      </div>
+      
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <input type="email" id="adminEmail" required class="input-field" placeholder="admin@example.com">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <input type="password" id="adminPassword" required class="input-field" placeholder="Enter password">
+        </div>
+        <button type="submit" class="w-full btn-primary py-3" id="adminLoginBtn">Sign In</button>
+      </form>
+      
+      <p class="text-center text-gray-500 text-sm mt-6">
+        <a href="index.html" class="text-pink-600 hover:underline">Back to Website</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel" style="display: none;">
+    <!-- Mobile Menu Button -->
+    <button class="fixed top-4 left-4 z-50 md:hidden p-2 bg-white rounded-lg shadow-lg" onclick="toggleSidebar()">
+      <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-gray-900">CreatorVault</div>
+          <div class="text-xs text-gray-500">Admin Panel</div>
+        </div>
+      </div>
+      
+      <nav class="space-y-2">
+        <div class="nav-item active" onclick="showTab('dashboard')" data-tab="dashboard">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="showTab('addContent')" data-tab="addContent">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Add Content
+        </div>
+        <div class="nav-item" onclick="showTab('photos')" data-tab="photos">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          Manage Photos
+        </div>
+        <div class="nav-item" onclick="showTab('videos')" data-tab="videos">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+          Manage Videos
+        </div>
+        <div class="nav-item" onclick="showTab('payments')" data-tab="payments">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          Payments
+        </div>
+        <div class="nav-item" onclick="showTab('users')" data-tab="users">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+          Users
+        </div>
+      </nav>
+      
+      <div class="absolute bottom-6 left-4 right-4">
+        <button onclick="adminLogout()" class="w-full btn-secondary flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Dashboard Tab -->
+      <div id="tab-dashboard" class="tab-content">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="stat-card">
+            <div class="text-3xl font-bold text-pink-600" id="dashTotalPhotos">--</div>
+            <div class="text-gray-500 text-sm mt-1">Total Photos</div>
+          </div>
+          <div class="stat-card">
+            <div class="text-3xl font-bold text-pink-600" id="dashTotalVideos">--</div>
+            <div class="text-gray-500 text-sm mt-1">Total Videos</div>
+          </div>
+          <div class="stat-card">
+            <div class="text-3xl font-bold text-pink-600" id="dashPremiumContent">--</div>
+            <div class="text-gray-500 text-sm mt-1">Premium Content</div>
+          </div>
+          <div class="stat-card">
+            <div class="text-3xl font-bold text-pink-600" id="dashPendingPayments">--</div>
+            <div class="text-gray-500 text-sm mt-1">Pending Payments</div>
+          </div>
+        </div>
+        
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div class="stat-card">
+            <h3 class="font-semibold text-gray-900 mb-4">Recent Payments</h3>
+            <div id="recentPayments" class="space-y-3">Loading...</div>
+          </div>
+          <div class="stat-card">
+            <h3 class="font-semibold text-gray-900 mb-4">Recent Users</h3>
+            <div id="recentUsers" class="space-y-3">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Content Tab -->
+      <div id="tab-addContent" class="tab-content" style="display: none;">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Add Content</h1>
+        
+        <div class="flex gap-2 mb-6">
+          <button class="tab-btn active" onclick="setContentType('photo')" id="btnPhoto">Photo</button>
+          <button class="tab-btn" onclick="setContentType('video')" id="btnVideo">Video</button>
+        </div>
+        
+        <!-- Photo Form -->
+        <form id="photoForm" onsubmit="addPhoto(event)" class="stat-card max-w-2xl">
+          <div class="grid gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+              <input type="text" id="photoTitle" required class="input-field" placeholder="Photo title">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea id="photoDesc" class="input-field" rows="3" placeholder="Photo description"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
+              <input type="url" id="photoUrl" required class="input-field" placeholder="https://example.com/image.jpg">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select id="photoCategory" class="input-field">
+                <option value="Portrait">Portrait</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Lifestyle">Lifestyle</option>
+                <option value="Outdoor">Outdoor</option>
+                <option value="BTS">Behind The Scenes</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="photoPremium" class="w-5 h-5 rounded border-pink-300 text-pink-600">
+              <label for="photoPremium" class="text-sm text-gray-700">Premium Content</label>
+            </div>
+            <button type="submit" class="btn-primary">Add Photo</button>
+          </div>
+        </form>
+        
+        <!-- Video Form -->
+        <form id="videoForm" onsubmit="addVideo(event)" class="stat-card max-w-2xl" style="display: none;">
+          <div class="grid gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+              <input type="text" id="videoTitle" required class="input-field" placeholder="Video title">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea id="videoDesc" class="input-field" rows="3" placeholder="Video description"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
+              <input type="url" id="videoUrl" required class="input-field" placeholder="https://example.com/video.mp4">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL</label>
+              <input type="url" id="thumbnailUrl" class="input-field" placeholder="https://example.com/thumb.jpg">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                <input type="text" id="videoDuration" class="input-field" placeholder="5:30">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select id="videoCategory" class="input-field">
+                  <option value="BTS">Behind The Scenes</option>
+                  <option value="Lifestyle">Lifestyle</option>
+                  <option value="Tutorial">Tutorial</option>
+                  <option value="Vlog">Vlog</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="videoPremium" class="w-5 h-5 rounded border-pink-300 text-pink-600">
+              <label for="videoPremium" class="text-sm text-gray-700">Premium Content</label>
+            </div>
+            <button type="submit" class="btn-primary">Add Video</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Photos Tab -->
+      <div id="tab-photos" class="tab-content" style="display: none;">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Manage Photos</h1>
+        <div class="stat-card overflow-x-auto">
+          <table class="content-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Premium</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="photosTable">Loading...</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Videos Tab -->
+      <div id="tab-videos" class="tab-content" style="display: none;">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Manage Videos</h1>
+        <div class="stat-card overflow-x-auto">
+          <table class="content-table">
+            <thead>
+              <tr>
+                <th>Thumbnail</th>
+                <th>Title</th>
+                <th>Duration</th>
+                <th>Premium</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="videosTable">Loading...</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Payments Tab -->
+      <div id="tab-payments" class="tab-content" style="display: none;">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Payment Verification</h1>
+        <div class="stat-card overflow-x-auto">
+          <table class="content-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Transaction ID</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTable">Loading...</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="tab-content" style="display: none;">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Registered Users</h1>
+        <div class="stat-card overflow-x-auto">
+          <table class="content-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Membership</th>
+                <th>Role</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable">Loading...</tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let allPhotos = [];
+    let allVideos = [];
+    let allPayments = [];
+    let allUsers = [];
+
+    // Check auth on load
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkAdmin(session.user.id);
+      }
+      
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+          await checkAdmin(session.user.id);
+        }
+      });
+    });
+
+    async function checkAdmin(userId) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (data && data.role === 'admin') {
+        currentUser = data;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadDashboard();
+      } else {
+        showToast('Access denied. Admin only.', 'error');
+        await supabase.auth.signOut();
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('adminEmail').value;
+      const password = document.getElementById('adminPassword').value;
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function adminLogout() {
+      await supabase.auth.signOut();
+      document.getElementById('adminPanel').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+      });
+      document.getElementById('tab-' + tabName).style.display = 'block';
+      
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+      
+      // Close sidebar on mobile
+      if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
+    }
+
+    function setContentType(type) {
+      document.getElementById('btnPhoto').classList.toggle('active', type === 'photo');
+      document.getElementById('btnVideo').classList.toggle('active', type === 'video');
+      document.getElementById('photoForm').style.display = type === 'photo' ? 'block' : 'none';
+      document.getElementById('videoForm').style.display = type === 'video' ? 'block' : 'none';
+    }
+
+    async function loadDashboard() {
+      // Load stats
+      const { count: photoCount } = await supabase.from('photos').select('*', { count: 'exact', head: true });
+      const { count: videoCount } = await supabase.from('videos').select('*', { count: 'exact', head: true });
+      const { count: premiumCount } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('premium', true);
+      const { count: pendingPayments } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      
+      document.getElementById('dashTotalPhotos').textContent = photoCount || 0;
+      document.getElementById('dashTotalVideos').textContent = videoCount || 0;
+      document.getElementById('dashPremiumContent').textContent = premiumCount || 0;
+      document.getElementById('dashPendingPayments').textContent = pendingPayments || 0;
+      
+      // Load recent payments
+      const { data: payments } = await supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(5);
+      const recentPaymentsHtml = payments?.map(p => `
+        <div class="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
+          <div>
+            <div class="font-medium text-gray-900">${p.user_name || 'Unknown'}</div>
+            <div class="text-sm text-gray-500">${p.plan} - $${p.plan === 'basic' ? '9' : p.plan === 'premium' ? '19' : '49'}</div>
+          </div>
+          <span class="px-2 py-1 rounded text-xs font-medium ${p.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : p.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${p.status}</span>
+        </div>
+      `).join('') || '<p class="text-gray-500">No payments yet</p>';
+      document.getElementById('recentPayments').innerHTML = recentPaymentsHtml;
+      
+      // Load recent users
+      const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(5);
+      const recentUsersHtml = users?.map(u => `
+        <div class="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
+          <div>
+            <div class="font-medium text-gray-900">${u.full_name || 'No name'}</div>
+            <div class="text-sm text-gray-500">${u.email}</div>
+          </div>
+          <span class="px-2 py-1 rounded text-xs font-medium bg-pink-100 text-pink-700">${u.membership || 'free'}</span>
+        </div>
+      `).join('') || '<p class="text-gray-500">No users yet</p>';
+      document.getElementById('recentUsers').innerHTML = recentUsersHtml;
+      
+      // Load all data
+      await loadPhotos();
+      await loadVideos();
+      await loadPayments();
+      await loadUsers();
+    }
+
+    async function loadPhotos() {
+      const { data } = await supabase.from('photos').select('*').order('created_at', { ascending: false });
+      allPhotos = data || [];
+      
+      const html = allPhotos.map(p => `
+        <tr>
+          <td><img src="${p.url}" class="w-16 h-16 rounded-lg object-cover"></td>
+          <td class="font-medium">${p.title}</td>
+          <td>${p.category || '-'}</td>
+          <td><span class="px-2 py-1 rounded text-xs font-medium ${p.premium ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700'}">${p.premium ? 'Yes' : 'No'}</span></td>
+          <td><button onclick="deletePhoto('${p.id}')" class="btn-danger text-xs">Delete</button></td>
+        </tr>
+      `).join('');
+      
+      document.getElementById('photosTable').innerHTML = html || '<tr><td colspan="5" class="text-center text-gray-500 py-4">No photos</td></tr>';
+    }
+
+    async function loadVideos() {
+      const { data } = await supabase.from('videos').select('*').order('created_at', { ascending: false });
+      allVideos = data || [];
+      
+      const html = allVideos.map(v => `
+        <tr>
+          <td><img src="${v.thumbnail_url || 'https://via.placeholder.com/80'}" class="w-20 h-12 rounded object-cover"></td>
+          <td class="font-medium">${v.title}</td>
+          <td>${v.duration || '-'}</td>
+          <td><span class="px-2 py-1 rounded text-xs font-medium ${v.premium ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-700'}">${v.premium ? 'Yes' : 'No'}</span></td>
+          <td><button onclick="deleteVideo('${v.id}')" class="btn-danger text-xs">Delete</button></td>
+        </tr>
+      `).join('');
+      
+      document.getElementById('videosTable').innerHTML = html || '<tr><td colspan="5" class="text-center text-gray-500 py-4">No videos</td></tr>';
+    }
+
+    async function loadPayments() {
+      const { data } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
+      allPayments

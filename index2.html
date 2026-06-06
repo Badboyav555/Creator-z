@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorVault | Sophia Bennett</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* =========================================
+           CSS VARIABLES & RESET
+           ========================================= */
+        :root {
+            --primary: #EC4899;
+            --secondary: #F9A8D4;
+            --accent: #BE185D;
+            --bg: #FFF8FC;
+            --card-bg: #FFFFFF;
+            --text: #111827;
+            --text-light: #6B7280;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --shadow: 0 10px 30px -10px rgba(236, 72, 153, 0.15);
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+        img { max-width: 100%; display: block; object-fit: cover; }
+        button, input, textarea, select { font-family: inherit; outline: none; border: none; }
+
+        /* =========================================
+           UTILITIES & ANIMATIONS
+           ========================================= */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .flex { display: flex; align-items: center; }
+        .flex-col { display: flex; flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-10 { gap: 10px; } .gap-20 { gap: 20px; }
+        .text-center { text-align: center; }
+        .hidden { display: none !important; }
+        
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(236, 72, 153, 0.5); }
+        
+        .btn-outline { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
+        .btn-outline:hover { background: var(--primary); color: white; }
+
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Toast Notification */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 15px 25px; border-radius: 10px; color: white; font-weight: 500; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; min-width: 250px; animation: slideIn 0.3s ease; }
+        .toast.success { background: #10B981; }
+        .toast.error { background: #EF4444; }
+        .toast.info { background: #3B82F6; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* =========================================
+           HEADER & NAV
+           ========================================= */
+        header {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            padding: 15px 0;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .nav-container {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+        .logo span { color: var(--primary); }
+
+        .nav-links { display: flex; gap: 30px; }
+        .nav-links a { font-weight: 500; color: var(--text); position: relative; font-size: 0.95rem; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+        .nav-links a.active::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 2px; background: var(--primary); border-radius: 2px; }
+
+        /* Mobile Menu */
+        .hamburger { display: none; font-size: 1.5rem; color: var(--text); cursor: pointer; }
+        
+        .mobile-menu-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); z-index: 900; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .mobile-menu-overlay.active { opacity: 1; pointer-events: all; }
+
+        .mobile-menu {
+            position: fixed; top: 0; right: -300px; width: 280px; height: 100%;
+            background: var(--card-bg); z-index: 950; padding: 30px;
+            display: flex; flex-direction: column; gap: 20px;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+        }
+        .mobile-menu.active { right: 0; }
+        .mobile-menu-close { align-self: flex-end; font-size: 1.5rem; cursor: pointer; color: var(--text); }
+        .mobile-links { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .mobile-links a { font-size: 1.1rem; font-weight: 500; }
+
+        /* =========================================
+           PAGES
+           ========================================= */
+        main { padding-top: 100px; min-height: 80vh; padding-bottom: 40px; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s ease; }
+
+        /* Home */
+        .hero {
+            padding: 40px 0 80px 0; text-align: center;
+            background: radial-gradient(circle at center, rgba(236, 72, 153, 0.1) 0%, rgba(255,255,255,0) 70%);
+        }
+        .profile-pic { width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: var(--shadow); margin: 0 auto 20px; object-fit: cover; }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--text); }
+        .hero p { font-size: 1.1rem; color: var(--text-light); max-width: 600px; margin: 0 auto 30px; line-height: 1.6; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 600px; margin: 30px auto; }
+        .stat-card { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
+        .stat-number { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+
+        /* Gallery (Pinterest Style) */
+        .masonry-grid {
+            column-count: 3; column-gap: 20px;
+        }
+        .masonry-item {
+            break-inside: avoid; margin-bottom: 20px;
+            position: relative; border-radius: var(--radius); overflow: hidden;
+            box-shadow: var(--shadow); background: white;
+        }
+        .masonry-item img { width: 100%; height: auto; transition: 0.3s; }
+        .masonry-item:hover img { transform: scale(1.03); }
+        
+        /* Content Card Styles */
+        .content-card { position: relative; }
+        .content-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            opacity: 0; transition: 0.3s; color: white;
+        }
+        .content-card:hover .content-overlay { opacity: 1; }
+        .badge {
+            position: absolute; top: 10px; right: 10px; padding: 4px 10px;
+            border-radius: 20px; font-size: 0.8rem; font-weight: 600; z-index: 2;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .badge-premium { background: var(--accent); color: white; }
+        .badge-free { background: #10B981; color: white; }
+        
+        /* Blur Effect for Premium */
+        .blur-lock {
+            position: absolute; inset: 0; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            background: rgba(255,255,255,0.4); z-index: 10;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--accent);
+        }
+
+        /* Videos (Netflix Style) */
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 25px; }
+        .video-card { border-radius: var(--radius); overflow: hidden; background: white; box-shadow: var(--shadow); transition: 0.3s; }
+        .video-card:hover { transform: translateY(-5px); }
+        .video-thumb { position: relative; aspect-ratio: 16/9; background: #000; }
+        .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 3rem; opacity: 0.8; }
+        .duration { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; }
+        .video-info { padding: 15px; }
+
+        /* Membership */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        .pricing-card {
+            background: white; border-radius: var(--radius); padding: 40px 30px;
+            text-align: center; box-shadow: var(--shadow); border: 2px solid transparent; position: relative;
+            transition: 0.3s;
+        }
+        .pricing-card:hover { border-color: var(--primary); }
+        .pricing-card.featured { transform: scale(1.05); border-color: var(--primary); z-index: 2; }
+        .price { font-size: 2.5rem; font-weight: 700; color: var(--text); margin: 20px 0; }
+        .price span { font-size: 1rem; color: var(--text-light); font-weight: 400; }
+        .features-list { margin: 30px 0; text-align: left; }
+        .features-list li { margin-bottom: 12px; color: var(--text-light); display: flex; gap: 10px; }
+        .features-list li i { color: var(--primary); }
+
+        /* Forms (Login, Register, Payment, Contact) */
+        .auth-box {
+            max-width: 400px; margin: 50px auto; background: white;
+            padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; }
+        .form-input {
+            width: 100%; padding: 12px 15px; border: 1px solid #E5E7EB; border-radius: 8px;
+            background: #F9FAFB; transition: 0.3s;
+        }
+        .form-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1); }
+        .qr-section { text-align: center; margin-bottom: 30px; }
+        .qr-img { width: 200px; height: 200px; margin: 20px auto; border: 1px solid #E5E7EB; padding: 10px; border-radius: 10px; }
+
+        /* Dashboard */
+        .dash-card { background: white; padding: 25px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+
+        /* Footer */
+        footer { background: white; padding: 40px 0; margin-top: 60px; border-top: 1px solid #F3F4F6; text-align: center; color: var(--text-light); font-size: 0.9rem; }
+        .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+        .footer-links a { cursor: pointer; }
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .nav-links { display: none; }
+            .masonry-grid { column-count: 1; }
+            .hero h1 { font-size: 2rem; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .hero-buttons { flex-direction: column; }
+            .pricing-card.featured { transform: scale(1); }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .masonry-grid { column-count: 2; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="glass">
+        <div class="container nav-container">
+            <a href="#" class="logo" onclick="app.nav('home')">Creator<span>Vault</span></a>
+            
+            <nav class="nav-links">
+                <a href="#" onclick="app.nav('home')">Home</a>
+                <a href="#" onclick="app.nav('gallery')">Gallery</a>
+                <a href="#" onclick="app.nav('videos')">Videos</a>
+                <a href="#" onclick="app.nav('explore')">Explore</a>
+                <a href="#" onclick="app.nav('membership')">Membership</a>
+            </nav>
+
+            <div class="nav-links">
+                <div id="auth-links">
+                    <!-- Injected via JS -->
+                    <a href="#" onclick="app.nav('login')">Login</a>
+                    <button class="btn btn-primary" onclick="app.nav('register')" style="padding: 8px 20px; font-size: 0.9rem;">Join</button>
+                </div>
+            </div>
+
+            <div class="hamburger" onclick="app.toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-overlay" id="menu-overlay" onclick="app.toggleMenu()"></div>
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-close" onclick="app.toggleMenu()"><i class="fas fa-times"></i></div>
+        <div class="mobile-links">
+            <a href="#" onclick="app.nav('home')">Home</a>
+            <a href="#" onclick="app.nav('gallery')">Gallery</a>
+            <a href="#" onclick="app.nav('videos')">Videos</a>
+            <a href="#" onclick="app.nav('explore')">Explore</a>
+            <a href="#" onclick="app.nav('membership')">Membership</a>
+            <hr style="border-color: #f3f4f6">
+            <div id="mobile-auth-links"></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        
+        <!-- HOME PAGE -->
+        <section id="home" class="page active">
+            <div class="hero">
+                <img src="https://picsum.photos/seed/sophia/200/200" alt="Sophia" class="profile-pic">
+                <h1>Sophia Bennett</h1>
+                <p>Digital Artist & Content Creator. Welcome to my exclusive collection of photography and behind-the-scenes footage.</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-photos">0</div>
+                        <div class="stat-label">Photos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-videos">0</div>
+                        <div class="stat-label">Videos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-subs">0</div>
+                        <div class="stat-label">Subscribers</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-20 hero-buttons">
+                    <button class="btn btn-primary" onclick="app.nav('membership')">Subscribe Now</button>
+                    <button class="btn btn-outline" onclick="app.nav('gallery')">Explore Content</button>
+                </div>
+            </div>
+
+            <h2 style="margin-bottom: 20px;">Featured Content</h2>
+            <div id="featured-content" class="video-grid" style="margin-bottom: 60px;">
+                <p style="color: #999; grid-column: 1/-1;">Loading content...</p>
+            </div>
+        </section>
+
+        <!-- GALLERY PAGE -->
+        <section id="gallery" class="page">
+            <div class="flex justify-between" style="margin-bottom: 30px; flex-wrap: wrap; gap:10px;">
+                <h2>Gallery</h2>
+                <div class="flex gap-10">
+                    <input type="text" id="gallery-search" placeholder="Search..." class="form-input" style="width: 200px;">
+                    <select id="gallery-filter" class="form-input" style="width: 150px;">
+                        <option value="All">All</option>
+                        <option value="Photography">Photography</option>
+                        <option value="Urban">Urban</option>
+                        <option value="Art">Art</option>
+                    </select>
+                </div>
+            </div>
+            <div id="gallery-grid" class="masonry-grid">
+                <p class="text-center" style="grid-column: 1/-1;">Loading gallery...</p>
+            </div>
+        </section>
+
+        <!-- VIDEOS PAGE -->
+        <section id="videos" class="page">
+            <h2 style="margin-bottom: 20px;">Videos</h2>
+            <input type="text" id="video-search" placeholder="Search videos..." class="form-input" style="margin-bottom: 30px;">
+            <div id="video-grid" class="video-grid">
+                <p class="text-center">Loading videos...</p>
+            </div>
+        </section>
+
+        <!-- EXPLORE PAGE -->
+        <section id="explore" class="page">
+            <h2 style="margin-bottom: 20px;">Explore All</h2>
+            <div class="flex gap-20" style="margin-bottom: 20px;">
+                <button class="btn btn-outline" onclick="app.renderExplore('all')">All</button>
+                <button class="btn btn-outline" onclick="app.renderExplore('photo')">Photos</button>
+                <button class="btn btn-outline" onclick="app.renderExplore('video')">Videos</button>
+            </div>
+            <div id="explore-grid" class="masonry-grid"></div>
+        </section>
+
+        <!-- MEMBERSHIP PAGE -->
+        <section id="membership" class="page">
+            <div class="text-center" style="margin-bottom: 50px;">
+                <h2>Choose Your Plan</h2>
+                <p>Unlock exclusive content and support my work.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Basic</h3>
+                    <div class="price">$9<span>/mo</span></div>
+                    <ul class="features-list">
+                        <li><i class="fas fa-check"></i> Access to Free Content</li>
+                        <li><i class="fas fa-check"></i> Standard Resolution</li>
+                        <li><i class="fas fa-check"></i> Ad-free Browsing</li>
+                    </ul>
+                    <button class="btn btn-outline" onclick="app.nav('payment')">Choose Basic</button>
+                </div>
+                <div class="pricing-card featured">
+                    <div style="position: absolute; top:0; left:50%; transform:translate(-50%, -50%); background:var(--primary); color:white; padding:5px 15px; border-radius:20px; font-size:0.8rem;">MOST POPULAR</div>
+                    <h3>Premium</h3>
+                    <div class="price">$19<span>/mo</span></div>
+                    <ul class="features-list">
+                        <li><i class="fas fa-check"></i> <strong>Access to ALL Photos</strong></li>
+                        <li><i class="fas fa-check"></i> <strong>Access to ALL Videos</strong></li>
+                        <li><i class="fas fa-check"></i> 4K Download</li>
+                        <li><i class="fas fa-check"></i> Early Access</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="app.nav('payment', 'Premium')">Choose Premium</button>
+                </div>
+                <div class="pricing-card">
+                    <h3>VIP</h3>
+                    <div class="price">$49<span>/mo</span></div>
+                    <ul class="features-list">
+                        <li><i class="fas fa-check"></i> Everything in Premium</li>
+                        <li><i class="fas fa-check"></i> 1-on-1 Chat Access</li>
+                        <li><i class="fas fa-check"></i> Custom Requests</li>
+                    </ul>
+                    <button class="btn btn-outline" onclick="app.nav('payment')">Choose VIP</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIN PAGE -->
+        <section id="login" class="page">
+            <div class="auth-box">
+                <h2 class="text-center" style="margin-bottom: 20px;">Welcome Back</h2>
+                <form onsubmit="app.handleLogin(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                </form>
+                <p class="text-center" style="margin-top: 15px; font-size: 0.9rem;">
+                    Don't have an account? <a href="#" style="color: var(--primary);" onclick="app.nav('register')">Register</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- REGISTER PAGE -->
+        <section id="register" class="page">
+            <div class="auth-box">
+                <h2 class="text-center" style="margin-bottom: 20px;">Join CreatorVault</h2>
+                <form onsubmit="app.handleRegister(event)">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="reg-name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="reg-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="reg-pass" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="reg-confirm" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+                </form>
+                <p class="text-center" style="margin-top: 15px; font-size: 0.9rem;">
+                    Already have an account? <a href="#" style="color: var(--primary);" onclick="app.nav('login')">Login</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- DASHBOARD PAGE -->
+        <section id="dashboard" class="page">
+            <h2 style="margin-bottom: 20px;">My Dashboard</h2>
+            <div class="dash-card">
+                <div class="flex gap-20">
+                    <img src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff" style="width: 80px; height: 80px; border-radius: 50%;">
+                    <div>
+                        <h3 id="dash-name">User Name</h3>
+                        <p id="dash-email" style="color: var(--text-light);">user@email.com</p>
+                        <div style="margin-top: 10px;">
+                            <span id="dash-badge" class="badge badge-free">Free Member</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <h4>Quick Links</h4>
+                <div class="flex gap-10" style="margin-top: 15px;">
+                    <button class="btn btn-outline" onclick="app.nav('gallery')">Browse Gallery</button>
+                    <button class="btn btn-outline" onclick="app.nav('membership')">Upgrade Plan</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAYMENT PAGE -->
+        <section id="payment" class="page">
+            <div class="auth-box" style="max-width: 500px;">
+                <h2 class="text-center" style="margin-bottom: 10px;">Complete Payment</h2>
+                <p class="text-center" style="margin-bottom: 30px; font-size: 0.9rem;">Secure UPI Transaction</p>
+
+                <div class="qr-section">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=sophia@okhdfcbank&pn=Sophia%20Bennett" alt="QR Code" class="qr-img">
+                    <p><strong>UPI ID:</strong> sophia@okhdfcbank</p>
+                    <p><strong>A/c Holder:</strong> Sophia Bennett</p>
+                </div>
+
+                <form onsubmit="app.submitPayment(event)">
+                    <div class="form-group">
+                        <label>Selected Plan</label>
+                        <select id="pay-plan" class="form-input">
+                            <option value="Premium">Premium ($19/mo)</option>
+                            <option value="Basic">Basic ($9/mo)</option>
+                            <option value="VIP">VIP ($49/mo)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Transaction ID</label>
+                        <input type="text" id="pay-txn" class="form-input" placeholder="Enter UPI Ref Number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Screenshot URL (Optional)</label>
+                        <input type="url" id="pay-ss" class="form-input" placeholder="ImgBB/Cloudinary URL">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Payment</button>
+                </form>
+            </div>
+        </section>
+        
+        <!-- CONTACT PAGE -->
+        <section id="contact" class="page">
+            <div class="auth-box">
+                <h2 class="text-center">Contact Me</h2>
+                <form onsubmit="event.preventDefault(); app.toast('Message sent! I will reply soon.', 'success'); app.nav('home');">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Message</label>
+                        <textarea class="form-input" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Send Message</button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a onclick="app.nav('home')">Home</a>
+                <a onclick="app.nav('contact')">Contact</a>
+                <a onclick="app.toast('Privacy Policy Content here', 'info')">Privacy Policy</a>
+                <a onclick="app.toast('Terms of Service Content here', 'info')">Terms</a>
+                <a href="admin.html" target="_blank" style="color: #ccc; font-size: 0.8rem;">Admin</a>
+            </div>
+            <p>&copy; 2023 CreatorVault. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================
+        // CONFIGURATION
+        // =========================================
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
+        
+        // Initialize Supabase safely
+        let supabase;
+        let isSupabaseConfigured = false;
+
+        try {
+            if (SUPABASE_URL.includes('your-project') || !SUPABASE_ANON_KEY) {
+                console.warn('Supabase credentials are placeholders. App running in DEMO mode (No DB connection).');
+                // We don't initialize supabase to avoid errors, we handle logic separately
+            } else {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                isSupabaseConfigured = true;
+            }
+        } catch (e) {
+            console.error('Supabase initialization failed', e);
+        }
+
+        if (!isSupabaseConfigured) {
+            setTimeout(() => {
+                alert("ERROR: Please update 'SUPABASE_URL' and 'SUPABASE_ANON_KEY' in the code for full functionality.");
+            }, 1000);
+        }
+
+        // =========================================
+        // APP LOGIC
+        // =========================================
+        const app = {
+            currentUser: null,
+            
+            init: async () => {
+                // Check LocalStorage
+                const storedUser = localStorage.getItem('creator_vault_user');
+                if (storedUser) {
+                    try {
+                        app.currentUser = JSON.parse(storedUser);
+                        app.updateAuthUI();
+                    } catch(e) { localStorage.removeItem('creator_vault_user'); }
+                }
+                
+                // Load Home Data
+                app.loadHomeStats();
+                app.loadFeatured();
+                
+                // Setup Event Listeners only if elements exist
+                const galleryFilter = document.getElementById('gallery-filter');
+                if(galleryFilter) galleryFilter.addEventListener('change', app.loadGallery);
+                
+                const gallerySearch = document.getElementById('gallery-search');
+                if(gallerySearch) gallerySearch.addEventListener('input', app.loadGallery);
+                
+                const videoSearch = document.getElementById('video-search');
+                if(videoSearch) videoSearch.addEventListener('input', app.loadVideos);
+            },
+
+            // --- Navigation ---
+            nav: (pageId, planName = null) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                const target = document.getElementById(pageId);
+                if(target) target.classList.add('active');
+                
+                // Close mobile menu if open
+                const menu = document.getElementById('mobile-menu');
+                const overlay = document.getElementById('menu-overlay');
+                if(menu) menu.classList.remove('active');
+                if(overlay) overlay.classList.remove('active');
+
+                // Load specific data
+                if (pageId === 'gallery') app.loadGallery();
+                if (pageId === 'videos') app.loadVideos();
+                if (pageId === 'explore') app.renderExplore('all');
+                if (pageId === 'dashboard') app.loadDashboard();
+                if (pageId === 'payment' && planName) {
+                    const planSelect = document.getElementById('pay-plan');
+                    if(planSelect) planSelect.value = planName;
+                }
+                
+                window.scrollTo(0, 0);
+            },
+
+            toggleMenu: () => {
+                const menu = document.getElementById('mobile-menu');
+                const overlay = document.getElementById('menu-overlay');
+                if(menu && overlay) {
+                    menu.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                }
+            },
+
+            // --- Auth System ---
+            hashPassword: async (password) => {
+                const msgBuffer = new TextEncoder().encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+
+            handleRegister: async (e) => {
+                e.preventDefault();
+                if (!isSupabaseConfigured) return app.toast('Database not connected. Please update keys.', 'error');
+
+                const name = document.getElementById('reg-name').value;
+                const email = document.getElementById('reg-email').value;
+                const pass = document.getElementById('reg-pass').value;
+                const confirm = document.getElementById('reg-confirm').value;
+
+                if (pass !== confirm) return app.toast('Passwords do not match', 'error');
+
+                const hashedPassword = await app.hashPassword(pass);
+
+                const { error } = await supabase.from('users').insert([{
+                    full_name: name,
+                    email: email,
+                    password: hashedPassword
+                }]);
+
+                if (error) {
+                    app.toast(error.message, 'error');
+                } else {
+                    app.toast('Registration successful! Please login.', 'success');
+                    app.nav('login');
+                }
+            },
+
+            handleLogin: async (e) => {
+                e.preventDefault();
+                if (!isSupabaseConfigured) {
+                    // Demo login for testing UI without DB
+                    app.toast('Demo Mode: Logging in...', 'info');
+                    app.currentUser = { full_name: 'Demo User', email: 'demo@test.com', membership: 'free' };
+                    localStorage.setItem('creator_vault_user', JSON.stringify(app.currentUser));
+                    app.updateAuthUI();
+                    app.nav('dashboard');
+                    return;
+                }
+
+                const email = document.getElementById('login-email').value;
+                const pass = document.getElementById('login-password').value;
+                
+                const hashedPassword = await app.hashPassword(pass);
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('password', hashedPassword)
+                    .single();
+
+                if (error || !data) {
+                    app.toast('Invalid credentials', 'error');
+                } else {
+                    app.currentUser = data;
+                    localStorage.setItem('creator_vault_user', JSON.stringify(data));
+                    app.updateAuthUI();
+                    app.toast(`Welcome back, ${data.full_name}!`, 'success');
+                    app.nav('dashboard');
+                }
+            },
+
+            logout: () => {
+                app.currentUser = null;
+                localStorage.removeItem('creator_vault_user');
+                app.updateAuthUI();
+                app.toast('Logged out successfully', 'info');
+                app.nav('home');
+            },
+
+            updateAuthUI: () => {
+                const desktopAuth = document.getElementById('auth-links');
+                const mobileAuth = document.getElementById('mobile-auth-links');
+                
+                if (!desktopAuth || !mobileAuth) return;
+                
+                if (app.currentUser) {
+                    const html = `
+                        <a href="#" onclick="app.nav('dashboard')"><i class="fas fa-user"></i> Dashboard</a>
+                        <a href="#" onclick="app.logout()" style="color: var(--accent);">Logout</a>
+                    `;
+                    desktopAuth.innerHTML = html;
+                    mobileAuth.innerHTML = html;
+                } else {
+                    const html = `
+                        <a href="#" onclick="app.nav('login')">Login</a>
+                        <button class="btn btn-primary" onclick="app.nav('register')" style="padding: 8px 16px; font-size: 0.9rem;">Join</button>
+                    `;
+                    desktopAuth.innerHTML = html;
+                    mobileAuth.innerHTML = html.replace('btn btn-primary', ''); // Simplified for mobile
+                }
+            },
+
+            // --- Data Fetching & Rendering ---
+            checkAccess: (isPremium) => {
+                if (!isPremium) return true; // Free content
+                if (app.currentUser && app.currentUser.membership === 'premium') return true;
+                return false;
+            },
+
+            loadHomeStats: async () => {
+                if (!isSupabaseConfigured) return; // Skip if no DB
+                
+                try {
+                    const [{ count: pCount }, { count: vCount }, { count: uCount }] = await Promise.all([
+                        supabase.from('photos').select('*', { count: 'exact', head: true }),
+                        supabase.from('videos').select('*', { count: 'exact', head: true }),
+                        supabase.from('users').select('*', { count: 'exact', head: true })
+                    ]);
+                    
+                    if(document.getElementById('stat-photos')) document.getElementById('stat-photos').innerText = pCount || 0;
+                    if(document.getElementById('stat-videos')) document.getElementById('stat-videos').innerText = vCount || 0;
+                    if(document.getElementById('stat-subs')) document.getElementById('stat-subs').innerText = (uCount || 0) - 1; 
+                } catch (err) {
+                    console.log("Stats load error:", err);
+                }
+            },
+
+            loadFeatured: async () => {
+                if (!isSupabaseConfigured) {
+                     const container = document.getElementById('featured-content');
+                     if(container) container.innerHTML = '<p class="text-center" style="grid-column:1/-1">Connect database to see content</p>';
+                     return;
+                }
+
+                const { data } = await supabase.from('photos').select('*').limit(3).order('created_at', { ascending: false });
+                const container = document.getElementById('featured-content');
+                if(container && data) {
+                    container.innerHTML = data.map(item => app.renderCard(item, 'photo')).join('');
+                }
+            },
+
+            loadGallery: async () => {
+                if (!isSupabaseConfigured) return;
+
+                const filter = document.getElementById('gallery-filter').value;
+                const search = document.getElementById('gallery-search').value;
+                
+                let query = supabase.from('photos').select('*');
+                
+                if (filter !== 'All') query = query.eq('category', filter);
+                if (search) query = query.ilike('title', `%${search}%`);
+                
+                const { data } = await query;
+                const container = document.getElementById('gallery-grid');
+                
+                if (!data || data.length === 0) {
+                    if(container) container.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">No content found.</p>';
+                    return;
+                }
+
+                container.innerHTML = data.map(item => app.renderCard(item, 'photo')).join('');
+            },
+
+            loadVideos: async () => {
+                if (!isSupabaseConfigured) return;
+
+                const search = document.getElementById('video-search').value;
+                let query = supabase.from('videos').select('*');
+                if (search) query = query.ilike('title', `%${search}%`);
+                
+                const { data } = await query;
+                const container = document.getElementById('video-grid');
+                
+                if (!data || data.length === 0) {
+                    if(container) container.innerHTML = '<p class="text-center">No videos found.</p>';
+                    return;
+                }
+
+                container.innerHTML = data.map(item => app.renderCard(item, 'video')).join('');
+            },
+
+            renderExplore: (type) => {
+                const container = document.getElementById('explore-grid');
+                if(!container) return;
+
+                if (!isSupabaseConfigured) {
+                    container.innerHTML = '<p class="text-center">Connect database to see content</p>';
+                    return;
+                }
+
+                container.innerHTML = '<p class="text-center">Loading...</p>';
+                
+                setTimeout(async () => {
+                    let html = '';
+                    if (type === 'all' || type === 'photo') {
+                        const { data: p } = await supabase.from('photos').select('*').limit(6);
+                        if(p) p.forEach(i => html += app.renderCard(i, 'photo'));
+                    }
+                    if (type === 'all' || type === 'video') {
+                        const { data: v } = await supabase.from('videos').select('*').limit(3);
+                        if(v) v.forEach(i => html += app.renderCard(i, 'video'));
+                    }
+                    container.innerHTML = html || '<p class="text-center">No content.</p>';
+                }, 500);
+            },
+
+            renderCard: (item, type) => {
+                const hasAccess = app.checkAccess(item.premium);
+                const badgeClass = item.premium ? 'badge-premium' : 'badge-free';
+                const badgeText = item.premium ? 'PREMIUM' : 'FREE';
+                
+                let media = '';
+                if (type === 'photo') {
+                    media = `<img src="${item.url}" alt="${item.title}" loading="lazy">`;
+                } else {
+                    media = `
+                        <div class="video-thumb" style="background-image: url(${item.thumbnail_url}); background-size: cover;">
+                            <i class="fas fa-play-circle play-icon"></i>
+                            <span class="duration">${item.duration || '00:00'}</span>
+                        </div>
+                    `;
+                }
+
+                const lockOverlay = hasAccess ? '' : `
+                    <div class="blur-lock">
+                        <i class="fas fa-lock fa-3x" style="margin-bottom: 10px;"></i>
+                        <button class="btn btn-primary btn-sm" onclick="app.nav('membership')">Unlock</button>
+                    </div>
+                `;
+
+                return `
+                    <div class="${type === 'photo' ? 'masonry-item' : 'video-card'} content-card">
+                        <span class="badge ${badgeClass}">${badgeText}</span>
+                        ${media}
+                        ${lockOverlay}
+                        <div class="content-overlay">
+                            <h3>${item.title}</h3>
+                            <p>${item.category}</p>
+                        </div>
+                        ${type === 'video' ? `<div class="video-info"><h4>${item.title}</h4></div>` : ''}
+                    </div>
+                `;
+            },
+
+            loadDashboard: () => {
+                if (!app.currentUser) return app.nav('login');
+                const nameEl = document.getElementById('dash-name');
+                const emailEl = document.getElementById('dash-email');
+                const badge = document.getElementById('dash-badge');
+                
+                if(nameEl) nameEl.innerText = app.currentUser.full_name;
+                if(emailEl) emailEl.innerText = app.currentUser.email;
+                
+                if (badge) {
+                    if (app.currentUser.membership === 'premium') {
+                        badge.className = 'badge badge-premium';
+                        badge.innerText = 'Premium Member';
+                    } else {
+                        badge.className = 'badge badge-free';
+                        badge.innerText = 'Free Member';
+                    }
+                }
+            },
+
+            submitPayment: async (e) => {
+                e.preventDefault();
+                if (!app.currentUser) return app.toast('Please login first', 'error');
+                if (!isSupabaseConfigured) return app.toast('Database not connected', 'error');
+
+                const plan = document.getElementById('pay-plan').value;
+                const txn = document.getElementById('pay-txn').value;
+                const ss = document.getElementById('pay-ss').value;
+
+                const { error } = await supabase.from('payments').insert([{
+                    user_id: app.currentUser.id,
+                    user_name: app.currentUser.full_name,
+                    user_email: app.currentUser.email,
+                    plan: plan,
+                    transaction_id: txn,
+                    screenshot_url: ss
+                }]);
+
+                if (error) {
+                    app.toast(error.message, 'error');
+                } else {
+                    app.toast('Payment submitted for review!', 'success');
+                    app.nav('dashboard');
+                }
+            },
+
+            // --- Utilities ---
+            toast: (msg, type = 'info') => {
+                const container = document.getElementById('toast-container');
+                if(!container) return;
+
+                const el = document.createElement('div');
+                el.className = `toast ${type}`;
+                el.innerHTML = type === 'success' ? `<i class="fas fa-check-circle"></i> ${msg}` : msg;
+                container.appendChild(el);
+                setTimeout(() => {
+                    el.style.animation = 'slideIn 0.3s ease reverse';
+                    setTimeout(() => el.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // Start App safely
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', app.init);
+        } else {
+            app.init();
+        }
+    </script>
+</body>
+</html>
